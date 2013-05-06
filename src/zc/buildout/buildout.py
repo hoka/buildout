@@ -912,6 +912,7 @@ class Buildout(UserDict.DictMixin):
             path = [options['develop-eggs-directory']],
             allow_hosts = self._allow_hosts,
             prefer_final=not self.accept_buildout_test_releases,
+            index_servers = self['buildout'].get('index_servers').split()
             )
 
         upgraded = []
@@ -1027,7 +1028,8 @@ class Buildout(UserDict.DictMixin):
                 links = self['buildout'].get('find-links', '').split(),
                 index = self['buildout'].get('index'),
                 newest=self.newest, allow_hosts=self._allow_hosts,
-                prefer_final=not self.accept_buildout_test_releases)
+                prefer_final=not self.accept_buildout_test_releases,
+                index_servers = self['buildout'].get('index_servers').split())
 
             # Clear cache because extensions might now let us read pages we
             # couldn't read before.
@@ -1142,7 +1144,8 @@ def _install_and_load(spec, group, entry, buildout):
                 working_set=pkg_resources.working_set,
                 newest=buildout.newest,
                 allow_hosts=buildout._allow_hosts,
-                prefer_final=not buildout.accept_buildout_test_releases)
+                prefer_final=not buildout.accept_buildout_test_releases,
+                index_servers = buildout_options.get('index_servers').split())
 
         __doing__ = 'Loading %s recipe entry %s:%s.', group, spec, entry
         return pkg_resources.load_entry_point(

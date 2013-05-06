@@ -192,6 +192,18 @@ def _get_version(executable):
 
 FILE_SCHEME = re.compile('file://', re.I).match
 
+#Because Installer is initialized several times from eggs while installing
+#i see no other way to do it
+index_servers_=None
+
+def _get_index_servers():
+    return index_servers_
+
+def _set_index_servers(value):
+    global index_servers_
+    index_servers_=value
+
+
 class AllowHostsPackageIndex(setuptools.package_index.PackageIndex):
     """Will allow urls that are local to the system.
 
@@ -635,7 +647,23 @@ class Installer:
 
         if index.obtain(requirement) is None:
             # Nothing is available.
-            return None
+            if _get_index_servers():
+                found_=False
+                for url in _get_index_servers():
+                    index=_get_index(self._executable,
+                                     url, self._links,
+                                     self._allow_hosts)
+
+                    #Order of url = priority of servers
+                    if index.obtain(requirement) != None:
+                        found_=True
+                        break
+                # Nothing is available.
+                if not found_:
+                    return None
+            else:
+                # Nothing is available.
+                return None
 
         # Filter the available dists for the requirement and source flag.  If
         # we are not supposed to include site-packages for the given egg, we
@@ -1069,7 +1097,9 @@ def install(specs, dest,
             path=None, working_set=None, newest=True, versions=None,
             use_dependency_links=None, allow_hosts=('*',),
             include_site_packages=None, allowed_eggs_from_site_packages=None,
-            prefer_final=None):
+            prefer_final=None,index_servers=None):
+    if index_servers:
+        _set_index_servers(index_servers)
     installer = Installer(
         dest, links, index, executable, always_unzip, path, newest,
         versions, use_dependency_links, allow_hosts=allow_hosts,
@@ -1171,7 +1201,7 @@ def develop(setup, dest,
         if log_level < logging.DEBUG:
             logger.debug("in: %r\n%s", directory, ' '.join(args))
 
-        # XXX It looks like someone tried to get clever with "bad" develop eggs, but this 
+        # XXX It looks like someone tried to get clever with "bad" develop eggs, but this
         # currently fails on Windows
         #p = subprocess.Popen(
         #    [_safe_arg(executable)] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
